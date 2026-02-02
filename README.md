@@ -1,135 +1,42 @@
-# utilisateur-avec-react-vite-et-django-et-postgresql-otp
+a dernière modification enregistrée dans le dépôt est le commit “Harden backend container for production, add entrypoint and env config”. Il inclut :
 
-## Checklist complet pour refaire ce projet (React/Vite + Django + Koyeb + Cloudflare)
+    ajout d’un entrypoint.sh + Gunicorn,
 
-Ce guide est réutilisable pour refaire un projet similaire (frontend + backend + CI/CD + déploiement).
-Il est pensé pour être copié/collé et adapté à un nouveau projet.
+    ajustements CORS/CSRF/DEBUG,
 
----
+    ajout des .env.example,
 
-### 1) Préparer le repo GitHub
+    configuration de VITE_API_URL.
 
-- Créer un repo GitHub (public ou privé).
-- Cloner localement le repo.
-- Créer la structure :
-  - `frontend/` (React Vite)
-  - `backend/` (Django)
-- Ajouter un `README.md` minimal.
+Détails complets visibles dans le dernier commit : git log -1 --stat. (Command exécutée : git log -1 --stat.)
 
----
+Objectif de la modification (le “but”)
 
-### 2) Frontend (React + Vite)
+Cette modification vise à rendre le projet prêt pour la production et facilement déployable :
 
-- Créer le frontend :
-  - `npm create vite@latest frontend -- --template react-ts`
-- Installer les dépendances :
-  - `cd frontend`
-  - `npm install`
-- Créer `.env.example` côté frontend :
-  - `VITE_API_URL=https://<ton-backend>.koyeb.app/api`
-- Utiliser `VITE_API_URL` dans le code (axios/baseURL).
+    Backend prêt pour la prod (Docker + Gunicorn)
 
----
+        Le backend ne démarre plus avec runserver (dev), mais avec un entrypoint prod qui lance les migrations, collecte les fichiers statiques, puis démarre Gunicorn. Cela correspond aux bonnes pratiques de déploiement (Koyeb, etc.).
 
-### 3) Backend (Django + DRF)
+    Configuration de sécurité via variables d’environnement
 
-- Créer le backend Django :
-  - `python -m venv .venv`
-  - `source .venv/bin/activate`
-  - `pip install django djangorestframework`
-  - `django-admin startproject <project_name> backend`
-- Ajouter les apps nécessaires (users, etc.).
-- Configurer PostgreSQL dans `settings.py` via variables d’environnement :
-  - `DB_HOST` / `DB_NAME` / `DB_USER` / `DB_PASS` / `DB_PORT`
-- Créer `backend/.env.example` (sans secrets) :
-  - `SECRET_KEY=...`
-  - `DEBUG=False`
-  - `DB_*`
-  - `CORS_*`
-  - `CSRF_TRUSTED_ORIGINS`
-  - `EMAIL_*`
+        Par défaut, DEBUG est désactivé et les règles CORS/CSRF sont configurables par variables d’environnement. Cela évite d’exposer l’API en prod par défaut et facilite le déploiement sur un domaine Cloudflare Pages/Koyeb.
 
----
+    Front-end portable (API URL configurable)
 
-### 4) Dockeriser le backend
+        L’URL de l’API n’est plus en dur en local ; elle peut être définie via VITE_API_URL, ce qui permet d’utiliser facilement un backend Koyeb en production.
 
-- Créer `backend/Dockerfile` (prod) :
-  - Base `python:3.x-slim`
-  - Installer `requirements.txt`
-  - Copier le code
-  - `CMD -> entrypoint.sh`
-- Créer `backend/entrypoint.sh` :
-  - migrate
-  - collectstatic
-  - `gunicorn --bind 0.0.0.0:$PORT`
+    Exemples d’environnement
 
----
 
-### 5) GHCR (Docker Registry)
 
-- Activer GitHub Container Registry (GHCR).
-- Créer un workflow GitHub Actions :
-  - build + push l’image Docker à chaque push sur `main`
-  - tag : `ghcr.io/<user>/<repo>-backend:latest`
 
----
+Pourquoi cette modification ?
 
-### 6) Base de données PostgreSQL (Koyeb)
+    Fiabilité en production : runserver est un serveur de développement, non prévu pour la prod. Gunicorn est le standard pour Django en production.
 
-- Koyeb → Databases → créer PostgreSQL
-- Copier les Connection Details
-- Récupérer :
-  - `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS`, `DB_PORT`
+    Sécurité : éviter DEBUG=True et CORS ouvert en production, tout en laissant la configuration via variables d’environnement (Koyeb/CI).
 
----
+    Déploiement facile : Cloudflare Pages + Koyeb demandent des URLs de prod, donc VITE_API_URL est indispensable pour connecter le front au bon backend.
 
-### 7) Déployer le backend sur Koyeb
-
-- Koyeb → Create Service → "Pre-built Docker image"
-- Image : `ghcr.io/<user>/<repo>-backend:latest`
-- Port : 8000 (HTTP)
-- Variables d’env :
-  - `DEBUG=False`
-  - `SECRET_KEY=...`
-  - `DB_*` (host, name, user, pass, port)
-  - `CORS_ALLOW_ALL_ORIGINS=False`
-  - `CORS_ALLOWED_ORIGINS=https://<ton-frontend>.pages.dev`
-  - `CSRF_TRUSTED_ORIGINS=https://<ton-frontend>.pages.dev`
-  - `EMAIL_*` (si email)
-- Vérifier que Gunicorn écoute sur `0.0.0.0:$PORT`.
-
----
-
-### 8) Déployer le frontend sur Cloudflare Pages
-
-- Cloudflare Pages → connecter le repo GitHub
-- Root directory : `frontend`
-- Build command : `npm ci && npm run build`
-- Output : `dist`
-- Environment variables (Production) :
-  - `VITE_API_URL=https://<ton-backend>.koyeb.app/api`
-
----
-
-### 9) CORS + CSRF
-
-- Backend : `CORS_ALLOWED_ORIGINS` = domaine Cloudflare Pages
-- Backend : `CSRF_TRUSTED_ORIGINS` = domaine Cloudflare Pages
-- Ne pas laisser `CORS_ALLOW_ALL_ORIGINS=True` en prod.
-
----
-
-### 10) CI/CD complet
-
-- Push sur `main` → GitHub Actions build & push image (GHCR)
-- Koyeb auto‑deploy → redéploiement automatique
-- Cloudflare Pages → rebuild automatique du frontend
-
----
-
-### 11) Vérifications finales
-
-- Tester `/admin`, `/api/`, et login frontend
-- Vérifier que les requêtes front → back passent (pas d’erreur CORS)
-- Vérifier que la DB est bien utilisée (pas sqlite)
-- Vérifier les logs Koyeb (migrations, gunicorn OK)
+     
