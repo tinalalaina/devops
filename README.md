@@ -1,6 +1,6 @@
 # utilisateur-avec-react-vite-et-django-et-postgresql-otp
 
-## Checklist complet pour refaire ce projet (React/Vite + Django + Koyeb + Cloudflare)
+## Checklist complet pour refaire ce projet (React/Vite + Django + Koyeb/Render + Cloudflare)
 
 Ce guide est réutilisable pour refaire un projet similaire (frontend + backend + CI/CD + déploiement).
 Il est pensé pour être copié/collé et adapté à un nouveau projet.
@@ -74,12 +74,13 @@ Il est pensé pour être copié/collé et adapté à un nouveau projet.
 
 ---
 
-### 6) Base de données PostgreSQL (Koyeb)
+### 6) Base de données PostgreSQL (Koyeb ou Render)
 
-- Koyeb → Databases → créer PostgreSQL
+- Koyeb **ou** Render → Databases → créer PostgreSQL
 - Copier les Connection Details
 - Récupérer :
   - `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS`, `DB_PORT`
+  - Sur Render, utilise le **Hostname** fourni (ex: `dpg-xxxx`).
 
 ---
 
@@ -97,6 +98,27 @@ Il est pensé pour être copié/collé et adapté à un nouveau projet.
   - `CSRF_TRUSTED_ORIGINS=https://<ton-frontend>.pages.dev`
   - `EMAIL_*` (si email)
 - Vérifier que Gunicorn écoute sur `0.0.0.0:$PORT`.
+
+---
+
+### 7bis) Déployer le backend sur Render (alternative simple)
+
+- Render → New → **Web Service**
+- Root Directory : `backend`
+- Build Command :
+  - `pip install -r requirements.txt`
+  - `python manage.py collectstatic --noinput`
+- Start Command :
+  - `gunicorn agriculture.wsgi:application --bind 0.0.0.0:$PORT`
+- Environment variables (Settings → Environment) :
+  - `DEBUG=False`
+  - `SECRET_KEY=...` (bouton **Generate** sur Render)
+  - `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS`, `DB_PORT`
+  - `CORS_ALLOW_ALL_ORIGINS=False`
+  - `CORS_ALLOWED_ORIGINS=https://<ton-frontend>.pages.dev`
+  - `CSRF_TRUSTED_ORIGINS=https://<ton-frontend>.pages.dev`
+- (Optionnel) Pre-deploy Command :
+  - `python manage.py migrate`
 
 ---
 
