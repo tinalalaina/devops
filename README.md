@@ -1,157 +1,104 @@
-# utilisateur-avec-react-vite-et-django-et-postgresql-otp
+git clone 
+ls
+cd backend
+source .venv/bin/activate
+ajout .env
+python manage.py runserver
 
-## Checklist complet pour refaire ce projet (React/Vite + Django + Koyeb/Render + Cloudflare)
+cd ..
+cd frontend
+npm install
+npm run dev
 
-Ce guide est réutilisable pour refaire un projet similaire (frontend + backend + CI/CD + déploiement).
-Il est pensé pour être copié/collé et adapté à un nouveau projet.
+++++++++++++++++++++
+cloudflare.com
+frontend:
+clique sur 
+computer & ai => workers & pages => create application => Looking to deploy Pages? Get started => clique sur get startedd => import an existing git repository => deploy a site from your account (connect github) => confirm access => il va te diriger vers ton github est tu vois "cloudflare workers and pages" : laisse all repositories (ou ony select repositories ici on a choisir only slect et choisi websocket)=> clique save => l’accès est bien enregistré, mais il faut cliquer de nouveau sur “Connect GitHub” pour que la liste des repos se charge.=>   Clique Connect GitHub (au milieu de la page).=> Si on te demande de choisir un compte GitHub → sélectionne devworkshop26-web.=>Tu verras une liste de repos → choisis websocket.=>Tu verras enfin le formulaire Root directory.
+Root directory : frontend
+Build command : npm ci && npm run build
+Build output directory: dist
 
----
+Va dans ton projet Pages → Settings → Environment variables ou dans le variables and secrets =>
+type: text
+variable name: VITE_API_URL
+value: https://websocket-vp66.onrender.com/api
 
-### 1) Préparer le repo GitHub
+CORS_ALLOWED_ORIGINS=https://websocket-djo.pages.dev
+CSRF_TRUSTED_ORIGINS=https://websocket-djo.pages.dev
 
-- Créer un repo GitHub (public ou privé).
-- Cloner localement le repo.
-- Créer la structure :
-  - `frontend/` (React Vite)
-  - `backend/` (Django)
-- Ajouter un `README.md` minimal.
+CORS_ALLOW_ALL_ORIGINS=False
+ 
+Save, rebuild, and deploy.
++++++++++++++++++++++++++++++++++++++
+render 
+backend
 
----
+1) Créer un projet Render
+Sur l’écran “Projects” :
+    Clique + Create new project
+    Donne un nom (ex : my-app)
+    Ouvre le projet
+2) Créer ta base de données PostgreSQL
 
-### 2) Frontend (React + Vite)
+Dans ton projet :
+    Clique + New (en haut à droite)
+   Sur l’écran “New Postgres” (ta capture) :
+    Name → mets un nom (ex: agri-db)
+    Project → choisis ton projet
+    Region → choisis la même région que ton backend
+    PostgreSQL Version → laisse 16 ou 15
+    Plan Options → choisis “Free”
+    👉 Sur ta capture c’est Basic (payant). Clique bien Free.
+    Clique Create Database
 
-- Créer le frontend :
-  - `npm create vite@latest frontend -- --template react-ts`
-- Installer les dépendances :
-  - `cd frontend`
-  - `npm install`
-- Créer `.env.example` côté frontend :
-  - `VITE_API_URL=https://<ton-backend>.koyeb.app/api`
-- Utiliser `VITE_API_URL` dans le code (axios/baseURL).
 
----
+➡️ Une fois créé, Render te donne :
+    Host
+    Database
+    User
+    Password
+    Internal URL
+    External URL
+Garde ces infos.
 
-### 3) Backend (Django + DRF)
 
-- Créer le backend Django :
-  - `python -m venv .venv`
-  - `source .venv/bin/activate`
-  - `pip install django djangorestframework`
-  - `django-admin startproject <project_name> backend`
-- Ajouter les apps nécessaires (users, etc.).
-- Configurer PostgreSQL dans `settings.py` via variables d’environnement :
-  - `DB_HOST` / `DB_NAME` / `DB_USER` / `DB_PASS` / `DB_PORT`
-- Créer `backend/.env.example` (sans secrets) :
-  - `SECRET_KEY=...`
-  - `DEBUG=False`
-  - `DB_*`
-  - `CORS_*`
-  - `CSRF_TRUSTED_ORIGINS`
-  - `EMAIL_*`
+avec:   Port: 5432
 
----
+    Host: dpg-d60lsufpm1nc73cr1vr0-a
 
-### 4) Dockeriser le backend
+    Database: mydatabase_tsps
 
-- Créer `backend/Dockerfile` (prod) :
-  - Base `python:3.x-slim`
-  - Installer `requirements.txt`
-  - Copier le code
-  - `CMD -> entrypoint.sh`
-- Créer `backend/entrypoint.sh` :
-  - migrate
-  - collectstatic
-  - `gunicorn --bind 0.0.0.0:$PORT`
+    Username: mydatabase_tsps_user
 
----
+    Password: 4dl71kaUUvPn4ICVk37tqe3eJIzZDOYB
 
-### 5) GHCR (Docker Registry)
+    Internal URL: postgresql://mydatabase_tsps_user:4dl71kaUUvPn4ICVk37tqe3eJIzZDOYB@dpg-d60lsufpm1nc73cr1vr0-a/mydatabase_tsps
 
-- Activer GitHub Container Registry (GHCR).
-- Créer un workflow GitHub Actions :
-  - build + push l’image Docker à chaque push sur `main`
-  - tag : `ghcr.io/<user>/<repo>-backend:latest`
+    External URL: postgresql://mydatabase_tsps_user:4dl71kaUUvPn4ICVk37tqe3eJIzZDOYB@dpg-d60lsufpm1nc73cr1vr0-a.oregon-postgres.render.com/mydatabase_tsps
 
----
+Dans ton Web Service Render :
+    Ouvre Settings
+    Root Directory → mets : backend
 
-### 6) Base de données PostgreSQL (Koyeb ou Render)
 
-- Koyeb **ou** Render → Databases → créer PostgreSQL
-- Copier les Connection Details
-- Récupérer :
-  - `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS`, `DB_PORT`
-  - Sur Render, utilise le **Hostname** fourni (ex: `dpg-xxxx`).
+    Ouvre ton Web Service (pas la base)
+    Va dans Settings → Environment
+    Clique Add Environment Variable
+    Ajoute ceci (une par une) :
 
----
+DB_HOST=dpg-d60lsufpm1nc73cr1vr0-a
+DB_PORT=5432
+DB_NAME=mydatabase_tsps
+DB_USER=mydatabase_tsps_user
+DB_PASS=4dl71kaUUvPn4ICVk37tqe3eJIzZDOYB
+DEBUG=False
+SECRET_KEY=ta_cle_secrete
 
-### 7) Déployer le backend sur Koyeb
 
-- Koyeb → Create Service → "Pre-built Docker image"
-- Image : `ghcr.io/<user>/<repo>-backend:latest`
-- Port : 8000 (HTTP)
-- Variables d’env :
-  - `DEBUG=False`
-  - `SECRET_KEY=...`
-  - `DB_*` (host, name, user, pass, port)
-  - `CORS_ALLOW_ALL_ORIGINS=False`
-  - `CORS_ALLOWED_ORIGINS=https://<ton-frontend>.pages.dev`
-  - `CSRF_TRUSTED_ORIGINS=https://<ton-frontend>.pages.dev`
-  - `EMAIL_*` (si email)
-- Vérifier que Gunicorn écoute sur `0.0.0.0:$PORT`.
+Dans la ligne SECRET_KEY :
+    Clique sur le bouton “Generate” (à droite)
+    Render va créer automatiquement une clé sécurisée
+    Clique Save, rebuild, and deploy
 
----
-
-### 7bis) Déployer le backend sur Render (alternative simple)
-
-- Render → New → **Web Service**
-- Root Directory : `backend`
-- Build Command :
-  - `pip install -r requirements.txt`
-  - `python manage.py collectstatic --noinput`
-- Start Command :
-  - `gunicorn agriculture.wsgi:application --bind 0.0.0.0:$PORT`
-- Environment variables (Settings → Environment) :
-  - `DEBUG=False`
-  - `SECRET_KEY=...` (bouton **Generate** sur Render)
-  - `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS`, `DB_PORT`
-  - `CORS_ALLOW_ALL_ORIGINS=False`
-  - `CORS_ALLOWED_ORIGINS=https://<ton-frontend>.pages.dev`
-  - `CSRF_TRUSTED_ORIGINS=https://<ton-frontend>.pages.dev`
-- (Optionnel) Pre-deploy Command :
-  - `python manage.py migrate`
-
----
-
-### 8) Déployer le frontend sur Cloudflare Pages
-
-- Cloudflare Pages → connecter le repo GitHub
-- Root directory : `frontend`
-- Build command : `npm ci && npm run build`
-- Output : `dist`
-- Environment variables (Production) :
-  - `VITE_API_URL=https://<ton-backend>.koyeb.app/api`
-
----
-
-### 9) CORS + CSRF
-
-- Backend : `CORS_ALLOWED_ORIGINS` = domaine Cloudflare Pages
-- Backend : `CSRF_TRUSTED_ORIGINS` = domaine Cloudflare Pages
-- Ne pas laisser `CORS_ALLOW_ALL_ORIGINS=True` en prod.
-
----
-
-### 10) CI/CD complet
-
-- Push sur `main` → GitHub Actions build & push image (GHCR)
-- Koyeb auto‑deploy → redéploiement automatique
-- Cloudflare Pages → rebuild automatique du frontend
-
----
-
-### 11) Vérifications finales
-
-- Tester `/admin`, `/api/`, et login frontend
-- Vérifier que les requêtes front → back passent (pas d’erreur CORS)
-- Vérifier que la DB est bien utilisée (pas sqlite)
-- Vérifier les logs Koyeb (migrations, gunicorn OK)
+teste: https://websocket-vp66.onrender.com
